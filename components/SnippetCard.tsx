@@ -4,6 +4,7 @@ import { Snippet, TabState, Language } from '../types';
 import { Copy, Trash2, Eye, Code as CodeIcon, Maximize2, X, Save, FilePlus, Search, ArrowDown, Columns, Monitor, Heart, Tag, Sun, Moon } from 'lucide-react';
 import { CodeEditor } from './CodeEditor';
 import { translations } from '../utils/translations';
+import { PasswordPromptModal } from './PasswordPromptModal';
 
 interface SnippetCardProps {
   snippet: Snippet;
@@ -37,6 +38,9 @@ export const SnippetCard: React.FC<SnippetCardProps> = ({ snippet, onDelete, onU
   const [fsNewTitle, setFsNewTitle] = useState(`${snippet.title} (copy)`);
   const [fsIsCopied, setFsIsCopied] = useState(false);
 
+  // Password Modal
+  const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
+
   // Sync local code if prop changes
   useEffect(() => {
     setLocalCode(snippet.code);
@@ -62,9 +66,13 @@ export const SnippetCard: React.FC<SnippetCardProps> = ({ snippet, onDelete, onU
     setIsDirty(true);
   };
 
-  const handleSave = () => {
+  const performSave = () => {
     onUpdate(snippet.id, localCode);
     setIsDirty(false);
+  };
+
+  const handleSave = () => {
+    setPendingAction(() => performSave);
   };
 
   const handleDelete = (e: React.MouseEvent) => {
@@ -79,27 +87,27 @@ export const SnippetCard: React.FC<SnippetCardProps> = ({ snippet, onDelete, onU
     onToggleFavorite(snippet.id);
   };
 
+  const performSaveAs = (titleToUse: string) => {
+    onSaveAs(snippet.id, localCode, titleToUse);
+    setShowSaveAs(false);
+    setFsShowSaveAs(false);
+    
+    // Revert the current card to original state
+    setLocalCode(snippet.code); 
+    setIsDirty(false);
+  };
+
   const handleSaveAsSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (newTitle.trim()) {
-      onSaveAs(snippet.id, localCode, newTitle);
-      setShowSaveAs(false);
-      
-      // Revert the current card to original state to show it wasn't modified
-      setLocalCode(snippet.code); 
-      setIsDirty(false);
+      setPendingAction(() => () => performSaveAs(newTitle));
     }
   };
 
   const handleFsSaveAsSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (fsNewTitle.trim()) {
-      onSaveAs(snippet.id, localCode, fsNewTitle);
-      setFsShowSaveAs(false);
-      
-      // Revert the current card to original state to show it wasn't modified
-      setLocalCode(snippet.code);
-      setIsDirty(false);
+      setPendingAction(() => () => performSaveAs(fsNewTitle));
     }
   };
 
@@ -111,6 +119,13 @@ export const SnippetCard: React.FC<SnippetCardProps> = ({ snippet, onDelete, onU
 
   const toggleTheme = () => {
     setEditorTheme(prev => prev === 'light' ? 'dark' : 'light');
+  };
+
+  const executePendingAction = () => {
+    if (pendingAction) {
+      pendingAction();
+      setPendingAction(null);
+    }
   };
 
   // Fullscreen Modal Content
@@ -438,6 +453,13 @@ export const SnippetCard: React.FC<SnippetCardProps> = ({ snippet, onDelete, onU
       </div>
 
       {isFullScreen && createPortal(fullScreenModalContent, document.body)}
+
+      <PasswordPromptModal 
+        isOpen={!!pendingAction}
+        onClose={() => setPendingAction(null)}
+        onSuccess={executePendingAction}
+        lang={lang}
+      />
     </>
   );
 };

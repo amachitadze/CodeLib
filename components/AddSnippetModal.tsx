@@ -51,8 +51,10 @@ export const AddSnippetModal: React.FC<AddSnippetModalProps> = ({ isOpen, onClos
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Simple password validation
-    if (password !== '0') {
+    // Check against Environment Variable
+    const appPassword = (import.meta as any).env?.VITE_APP_PASSWORD;
+
+    if (password !== appPassword) {
       setPasswordError(true);
       return;
     }

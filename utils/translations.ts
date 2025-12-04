@@ -60,7 +60,7 @@ export const translations = {
     add_ai_btn: "კოდის გენერირება",
     add_ai_generating: "გენერირება...",
     add_security: "უსაფრთხოება",
-    add_password_placeholder: "შეიყვანეთ პაროლი (0)",
+    add_password_placeholder: "ადმინისტრატორის პაროლი",
     add_password_error: "პაროლი არასწორია!",
     add_cancel: "გაუქმება",
     add_save: "შენახვა",
@@ -71,6 +71,7 @@ export const translations = {
     delete_message: "ნამდვილად გსურთ ამ კოდის სამუდამოდ წაშლა? ამ მოქმედების დაბრუნება შეუძლებელია.",
     delete_btn: "წაშლა",
     cancel_btn: "გაუქმება",
+    enter_password: "შეიყვანეთ პაროლი დასადასტურებლად",
 
     // Landing Page
     lp_version: "ვერსია 2.0 უკვე ხელმისაწვდომია",
@@ -168,7 +169,7 @@ export const translations = {
     add_ai_btn: "Generate Code",
     add_ai_generating: "Generating...",
     add_security: "Security",
-    add_password_placeholder: "Enter Password (0)",
+    add_password_placeholder: "Admin Password",
     add_password_error: "Incorrect Password!",
     add_cancel: "Cancel",
     add_save: "Save",
@@ -179,6 +180,7 @@ export const translations = {
     delete_message: "Are you sure you want to delete this snippet? This action cannot be undone.",
     delete_btn: "Delete",
     cancel_btn: "Cancel",
+    enter_password: "Enter password to confirm",
 
     // Landing Page
     lp_version: "Version 2.0 Available Now",
@@ -276,7 +278,7 @@ export const translations = {
     add_ai_btn: "Generar Código",
     add_ai_generating: "Generando...",
     add_security: "Seguridad",
-    add_password_placeholder: "Contraseña (0)",
+    add_password_placeholder: "Contraseña Admin",
     add_password_error: "¡Contraseña incorrecta!",
     add_cancel: "Cancelar",
     add_save: "Guardar",
@@ -287,6 +289,7 @@ export const translations = {
     delete_message: "¿Estás seguro de que quieres eliminar este código? Esta acción no se puede deshacer.",
     delete_btn: "Eliminar",
     cancel_btn: "Cancelar",
+    enter_password: "Confirmar contraseña",
 
     // Landing Page
     lp_version: "Versión 2.0 Disponible Ahora",
