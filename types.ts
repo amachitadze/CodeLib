@@ -1,13 +1,17 @@
 export type SnippetType = 'component' | 'website';
 
+export type Language = 'ka' | 'en' | 'es';
+
 export interface Snippet {
   id: string;
   title: string;
   description: string;
   code: string;
   type: SnippetType;
+  category: string;
   createdAt: number;
   tags?: string[];
+  isFavorite?: boolean;
 }
 
 export enum ViewMode {

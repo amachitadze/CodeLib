@@ -2,45 +2,175 @@
 <html lang="ka">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="theme-color" content="#4f46e5" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <title>CodeLib - კოდების ბიბლიოთეკა</title>
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="apple-touch-icon" href="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f4bb.png">
+
+    <!-- Tailwind is loaded via CDN for simplicity in this setup, 
+         though in a pure Vite build you might import it in CSS. 
+         Keeping CDN as per user preference for single-file feel. -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=BPG+Banner+Caps&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&family=Noto+Sans+Georgian:wght@100..900&display=swap" rel="stylesheet">
+    
+    <!-- PrismJS for Syntax Highlighting -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-css.min.js"></script>
+
     <style>
-      /* BPG Banner Caps is a popular Georgian font, falling back to Inter/sans-serif */
+      /* Apply Noto Sans Georgian globally */
       body {
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+        font-family: 'Noto Sans Georgian', -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
       }
       /* Custom scrollbar for code areas */
       .custom-scrollbar::-webkit-scrollbar {
-        width: 8px;
-        height: 8px;
+        width: 10px;
+        height: 10px;
       }
       .custom-scrollbar::-webkit-scrollbar-track {
-        background: #1e1e1e;
+        background: rgba(0,0,0,0.05);
       }
       .custom-scrollbar::-webkit-scrollbar-thumb {
-        background: #4b5563;
-        border-radius: 4px;
+        background: #cbd5e1;
+        border-radius: 5px;
+        border: 2px solid transparent;
+        background-clip: content-box;
       }
       .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-        background: #6b7280;
+        background: #94a3b8;
+      }
+      .editor-dark .custom-scrollbar::-webkit-scrollbar-track {
+        background: rgba(255,255,255,0.05);
+      }
+      .editor-dark .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: #475569;
+      }
+
+      /* Editor Themes Variables */
+      .editor-light {
+        --bg-color: #ffffff;
+        --text-color: #24292e;
+        --line-num-color: #abb2bf;
+        --line-num-bg: #f8fafc;
+        --line-border: #e2e8f0;
+        --caret-color: #000;
+        --token-comment: #6a737d;
+        --token-tag: #22863a;
+        --token-string: #032f62;
+        --token-attr: #6f42c1;
+        --token-keyword: #d73a49;
+        --token-val: #005cc5;
+      }
+      .editor-dark {
+        --bg-color: #1e1e1e;
+        --text-color: #d4d4d4;
+        --line-num-color: #858585;
+        --line-num-bg: #252526;
+        --line-border: #3e3e3e;
+        --caret-color: #fff;
+        --token-comment: #6a9955;
+        --token-tag: #569cd6;
+        --token-string: #ce9178;
+        --token-attr: #9cdcfe;
+        --token-keyword: #c586c0;
+        --token-val: #b5cea8;
+      }
+      
+      .code-editor-wrapper {
+        font-family: 'Fira Code', monospace;
+        background-color: var(--bg-color);
+        color: var(--text-color);
+      }
+
+      /* Syntax Highlighting Colors */
+      .code-editor-wrapper .token.comment,
+      .code-editor-wrapper .token.prolog,
+      .code-editor-wrapper .token.doctype,
+      .code-editor-wrapper .token.cdata { color: var(--token-comment); font-style: italic; }
+      
+      .code-editor-wrapper .token.punctuation { color: var(--text-color); opacity: 0.7; }
+      
+      .code-editor-wrapper .token.tag, 
+      .code-editor-wrapper .token.tag .token.punctuation,
+      .code-editor-wrapper .token.doctype, 
+      .code-editor-wrapper .token.builtin { color: var(--token-tag); }
+      
+      .code-editor-wrapper .token.attr-name { color: var(--token-attr); }
+      
+      .code-editor-wrapper .token.string,
+      .code-editor-wrapper .token.url,
+      .code-editor-wrapper .token.attr-value { color: var(--token-string); }
+      
+      .code-editor-wrapper .token.keyword,
+      .code-editor-wrapper .token.atrule { color: var(--token-keyword); }
+
+      .code-editor-wrapper .token.boolean,
+      .code-editor-wrapper .token.number,
+      .code-editor-wrapper .token.property,
+      .code-editor-wrapper .token.constant,
+      .code-editor-wrapper .token.symbol { color: var(--token-val); }
+      
+      .code-editor-wrapper .token.selector,
+      .code-editor-wrapper .token.important,
+      .code-editor-wrapper .token.regex { color: var(--token-keyword); }
+      
+      /* Animation for Landing Page Blobs */
+      @keyframes blob {
+        0% { transform: translate(0px, 0px) scale(1); }
+        33% { transform: translate(30px, -50px) scale(1.1); }
+        66% { transform: translate(-20px, 20px) scale(0.9); }
+        100% { transform: translate(0px, 0px) scale(1); }
+      }
+      .animate-blob {
+        animation: blob 7s infinite;
+      }
+      .animation-delay-2000 {
+        animation-delay: 2s;
+      }
+      .animation-delay-4000 {
+        animation-delay: 4s;
       }
     </style>
-  <script type="importmap">
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js')
+        .then(registration => {
+          console.log('SW registered: ', registration);
+        })
+        .catch(registrationError => {
+          console.log('SW registration failed: ', registrationError);
+        });
+    });
+  }
+</script>
+<script type="importmap">
 {
   "imports": {
-    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.555.0",
+    "react": "https://aistudiocdn.com/react@^19.2.1",
     "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.1/",
     "react/": "https://aistudiocdn.com/react@^19.2.1/",
-    "react": "https://aistudiocdn.com/react@^19.2.1",
     "@google/genai": "https://aistudiocdn.com/@google/genai@^1.31.0",
-    "react-dom": "https://aistudiocdn.com/react-dom@^19.2.1"
+    "react-dom": "https://aistudiocdn.com/react-dom@^19.2.1",
+    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.555.0",
+    "vite": "https://aistudiocdn.com/vite@^7.2.6",
+    "@vitejs/plugin-react": "https://aistudiocdn.com/@vitejs/plugin-react@^5.1.1",
+    "@supabase/supabase-js": "https://aistudiocdn.com/@supabase/supabase-js@^2.86.0"
   }
 }
 </script>
 </head>
   <body class="bg-slate-50 text-slate-900 antialiased">
     <div id="root"></div>
+    <!-- Vite Entry Point -->
+    <script type="module" src="/index.tsx"></script>
   </body>
 </html>

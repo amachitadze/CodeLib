@@ -1,183 +1,212 @@
 import React, { useState, useEffect } from 'react';
-import { Snippet, SnippetType, ViewMode } from './types';
+import { Snippet, SnippetType, ViewMode, Language } from './types';
 import { SnippetCard } from './components/SnippetCard';
 import { AddSnippetModal } from './components/AddSnippetModal';
-import { Plus, Search, Code2, LayoutGrid, Github, LayoutTemplate, Box, Layers, Grid3x3, Grid2x2, Rows } from 'lucide-react';
-
-const LOCAL_STORAGE_KEY = 'codelib_snippets';
-
-// Initial data for demonstration
-const INITIAL_SNIPPETS: Snippet[] = [
-  {
-    id: '1',
-    title: 'მბრუნავი ბარათი',
-    description: 'CSS ტრანსფორმაცია hover ეფექტზე',
-    type: 'component',
-    createdAt: Date.now(),
-    code: `<!DOCTYPE html>
-<html>
-<head>
-<style>
-  body { display: flex; justify-content: center; align-items: center; height: 100vh; background: #f0f9ff; font-family: sans-serif; margin: 0; }
-  .card {
-    width: 200px;
-    height: 300px;
-    perspective: 1000px;
-  }
-  .inner {
-    position: relative;
-    width: 100%;
-    height: 100%;
-    transition: transform 0.6s;
-    transform-style: preserve-3d;
-  }
-  .card:hover .inner {
-    transform: rotateY(180deg);
-  }
-  .front, .back {
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    backface-visibility: hidden;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    border-radius: 12px;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-  }
-  .front {
-    background: linear-gradient(to right, #4f46e5, #ec4899);
-    color: white;
-    font-size: 24px;
-    font-weight: bold;
-  }
-  .back {
-    background: white;
-    color: #333;
-    transform: rotateY(180deg);
-    border: 2px solid #4f46e5;
-  }
-</style>
-</head>
-<body>
-  <div class="card">
-    <div class="inner">
-      <div class="front">მიიტანე მაუსი</div>
-      <div class="back">გამარჯობა!</div>
-    </div>
-  </div>
-</body>
-</html>`
-  },
-  {
-    id: '2',
-    title: 'ნეონის ღილაკი',
-    description: 'მნათობი ღილაკი',
-    type: 'component',
-    createdAt: Date.now() - 10000,
-    code: `<!DOCTYPE html>
-<html>
-<head>
-<style>
-  body { background: #0f172a; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-  .neon-btn {
-    padding: 15px 30px;
-    font-size: 20px;
-    color: #03e9f4;
-    text-transform: uppercase;
-    text-decoration: none;
-    letter-spacing: 4px;
-    border: 2px solid #03e9f4;
-    position: relative;
-    overflow: hidden;
-    transition: 0.2s;
-    cursor: pointer;
-    background: transparent;
-    font-family: sans-serif;
-  }
-  .neon-btn:hover {
-    color: #0f172a;
-    background: #03e9f4;
-    box-shadow: 0 0 10px #03e9f4, 0 0 40px #03e9f4, 0 0 80px #03e9f4;
-  }
-</style>
-</head>
-<body>
-  <button class="neon-btn">Neon Button</button>
-</body>
-</html>`
-  }
-];
+import { ConfirmModal } from './components/ConfirmModal';
+import { LandingPage } from './components/LandingPage';
+import { AboutPage } from './components/AboutPage';
+import { LanguageDropdown } from './components/LanguageDropdown';
+import { translations } from './utils/translations';
+import { Plus, Search, Code2, LayoutGrid, Github, LayoutTemplate, Box, Layers, Grid3x3, Grid2x2, Rows, Heart, Filter, Home, Download, Loader2 } from 'lucide-react';
+import { supabase } from './lib/supabase';
 
 const App: React.FC = () => {
+  const [currentView, setCurrentView] = useState<'LANDING' | 'APP' | 'ABOUT'>('LANDING');
   const [snippets, setSnippets] = useState<Snippet[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterType, setFilterType] = useState<'ALL' | SnippetType>('ALL');
+  const [filterType, setFilterType] = useState<'ALL' | SnippetType | 'FAVORITES'>('ALL');
+  const [filterCategory, setFilterCategory] = useState<string>('ALL');
   const [viewMode, setViewMode] = useState<ViewMode>(ViewMode.GRID);
+  
+  // Language State
+  const [language, setLanguage] = useState<Language>('ka');
+  
+  // Delete modal state
+  const [snippetToDelete, setSnippetToDelete] = useState<string | null>(null);
 
-  // Load from local storage
+  // PWA Install State
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+
+  const t = translations[language];
+
+  // Load from Supabase on mount
   useEffect(() => {
-    const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
-    if (stored) {
-      try {
-        setSnippets(JSON.parse(stored));
-      } catch (e) {
-        setSnippets(INITIAL_SNIPPETS);
-      }
-    } else {
-      setSnippets(INITIAL_SNIPPETS);
-    }
+    fetchSnippets();
   }, []);
 
-  // Save to local storage
-  useEffect(() => {
-    if (snippets.length > 0) {
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(snippets));
+  const fetchSnippets = async () => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('snippets')
+        .select('*')
+        .order('created_at', { ascending: false });
+        
+      if (error) {
+        console.error('Error fetching snippets:', error);
+      } else if (data) {
+        // Map DB snake_case to UI camelCase if needed, but here we just map directly
+        const mappedSnippets: Snippet[] = data.map((item: any) => ({
+          id: item.id,
+          title: item.title,
+          description: item.description,
+          code: item.code,
+          type: item.type as SnippetType,
+          category: item.category,
+          createdAt: item.created_at, // DB is bigint, JS converts to number mostly fine
+          isFavorite: item.is_favorite
+        }));
+        setSnippets(mappedSnippets);
+      }
+    } catch (err) {
+      console.error("Supabase connection error:", err);
+    } finally {
+      setIsLoading(false);
     }
-  }, [snippets]);
+  };
 
-  const handleAddSnippet = (title: string, description: string, code: string, type: SnippetType) => {
-    const newSnippet: Snippet = {
-      id: crypto.randomUUID(),
+  // PWA Install Prompt Listener
+  useEffect(() => {
+    const handler = (e: any) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+
+    window.addEventListener('beforeinstallprompt', handler);
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handler);
+    };
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    setDeferredPrompt(null);
+  };
+
+  const handleAddSnippet = async (title: string, description: string, code: string, type: SnippetType, category: string) => {
+    const newSnippet = {
       title,
       description,
       code,
       type,
-      createdAt: Date.now(),
+      category,
+      created_at: Date.now(),
+      is_favorite: false
     };
-    setSnippets([newSnippet, ...snippets]);
+
+    const { data, error } = await supabase.from('snippets').insert([newSnippet]).select();
+
+    if (error) {
+      console.error('Error adding snippet:', error);
+      alert('Error adding snippet. Check console.');
+    } else if (data) {
+       // Refresh list to get the new ID generated by DB
+       fetchSnippets();
+    }
   };
 
-  const handleUpdateSnippet = (id: string, newCode: string) => {
-    setSnippets(snippets.map(s => s.id === id ? { ...s, code: newCode } : s));
+  const handleUpdateSnippet = async (id: string, newCode: string) => {
+    const { error } = await supabase
+      .from('snippets')
+      .update({ code: newCode })
+      .eq('id', id);
+
+    if (error) {
+      console.error('Error updating snippet:', error);
+    } else {
+      setSnippets((prev) => prev.map(s => s.id === id ? { ...s, code: newCode } : s));
+    }
   };
 
-  const handleSaveAsSnippet = (originalId: string, newCode: string, newTitle: string) => {
+  const handleToggleFavorite = async (id: string) => {
+    const snippet = snippets.find(s => s.id === id);
+    if (!snippet) return;
+
+    const newStatus = !snippet.isFavorite;
+
+    const { error } = await supabase
+      .from('snippets')
+      .update({ is_favorite: newStatus })
+      .eq('id', id);
+
+    if (error) {
+      console.error('Error toggling favorite:', error);
+    } else {
+      setSnippets((prev) => prev.map(s => s.id === id ? { ...s, isFavorite: newStatus } : s));
+    }
+  };
+
+  const handleSaveAsSnippet = async (originalId: string, newCode: string, newTitle: string) => {
     const original = snippets.find(s => s.id === originalId);
     if (original) {
-      const newSnippet: Snippet = {
-        ...original,
-        id: crypto.randomUUID(),
+      const newSnippet = {
         title: newTitle,
+        description: original.description,
         code: newCode,
-        createdAt: Date.now(),
+        type: original.type,
+        category: original.category,
+        created_at: Date.now(),
+        is_favorite: false
       };
-      setSnippets([newSnippet, ...snippets]);
+
+      const { data, error } = await supabase.from('snippets').insert([newSnippet]).select();
+      if (error) {
+         console.error('Error saving copy:', error);
+      } else {
+         fetchSnippets();
+      }
     }
   };
 
-  const handleDeleteSnippet = (id: string) => {
-    if (confirm('ნამდვილად გსურთ კოდის წაშლა?')) {
-      setSnippets(snippets.filter(s => s.id !== id));
+  const triggerDelete = (id: string) => {
+    setSnippetToDelete(id);
+  };
+
+  const confirmDelete = async () => {
+    if (snippetToDelete) {
+      const { error } = await supabase
+        .from('snippets')
+        .delete()
+        .eq('id', snippetToDelete);
+
+      if (error) {
+        console.error('Error deleting snippet:', error);
+      } else {
+        setSnippets((prev) => prev.filter((s) => s.id !== snippetToDelete));
+      }
+      setSnippetToDelete(null);
     }
   };
+
+  // Extract unique categories based on current type filter
+  const availableCategories = Array.from(new Set(
+    snippets
+      .filter(s => filterType === 'ALL' || filterType === 'FAVORITES' || s.type === filterType)
+      .map(s => s.category)
+      .filter(Boolean)
+  )).sort();
 
   const filteredSnippets = snippets.filter(s => {
     const matchesSearch = s.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           s.description?.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesType = filterType === 'ALL' || s.type === filterType;
-    return matchesSearch && matchesType;
+    
+    let matchesType = true;
+    if (filterType === 'FAVORITES') {
+      matchesType = !!s.isFavorite;
+    } else if (filterType !== 'ALL') {
+      matchesType = s.type === filterType;
+    }
+
+    let matchesCategory = true;
+    if (filterCategory !== 'ALL') {
+      matchesCategory = s.category === filterCategory;
+    }
+
+    return matchesSearch && matchesType && matchesCategory;
   });
 
   const getGridClass = () => {
@@ -192,8 +221,55 @@ const App: React.FC = () => {
     }
   };
 
+  const renderInstallButton = () => {
+      if (!deferredPrompt) return null;
+      return (
+        <button
+            onClick={handleInstallClick}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 shadow-sm border border-indigo-200 transition-all"
+            title={t.nav_install}
+        >
+            <Download size={14} />
+            <span className="hidden sm:inline">{t.nav_install}</span>
+        </button>
+      );
+  };
+
+  if (currentView === 'LANDING') {
+    return (
+      <>
+        <div className="fixed top-4 right-4 z-[60] flex gap-2">
+            {renderInstallButton()}
+            <LanguageDropdown currentLang={language} onLanguageChange={setLanguage} />
+        </div>
+        <LandingPage 
+          onStart={() => setCurrentView('APP')} 
+          onAbout={() => setCurrentView('ABOUT')}
+          lang={language} 
+        />
+      </>
+    );
+  }
+
+  if (currentView === 'ABOUT') {
+    return (
+      <>
+        <div className="fixed top-4 right-4 z-[60] flex gap-2">
+            {renderInstallButton()}
+            <LanguageDropdown currentLang={language} onLanguageChange={setLanguage} />
+        </div>
+        <AboutPage 
+          onBack={() => setCurrentView('LANDING')}
+          onStart={() => setCurrentView('APP')}
+          lang={language}
+        />
+      </>
+    );
+  }
+
+  // APP VIEW
   return (
-    <div className="min-h-screen flex flex-col font-sans">
+    <div className="min-h-screen flex flex-col font-sans bg-slate-50">
       {/* Navbar */}
       <nav className="bg-white border-b border-slate-200 sticky top-0 z-40 backdrop-blur-md bg-white/80">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -202,39 +278,62 @@ const App: React.FC = () => {
               <div className="bg-indigo-600 p-2 rounded-lg text-white">
                 <Code2 size={24} />
               </div>
-              <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600 tracking-tight">
-                CodeLib
+              <h1 className="hidden sm:block text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600 tracking-tight">
+                {t.app_name}
               </h1>
             </div>
             
             <div className="hidden md:flex items-center gap-1 bg-slate-100 p-1 rounded-lg">
               <button 
-                onClick={() => setFilterType('ALL')}
+                onClick={() => { setFilterType('ALL'); setFilterCategory('ALL'); }}
                 className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${filterType === 'ALL' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-indigo-600'}`}
               >
-                ყველა
+                {t.nav_all}
               </button>
               <button 
-                onClick={() => setFilterType('component')}
+                onClick={() => { setFilterType('component'); setFilterCategory('ALL'); }}
                 className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${filterType === 'component' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-indigo-600'}`}
               >
-                კომპონენტები
+                {t.nav_components}
               </button>
               <button 
-                onClick={() => setFilterType('website')}
+                onClick={() => { setFilterType('website'); setFilterCategory('ALL'); }}
                 className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${filterType === 'website' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-indigo-600'}`}
               >
-                საიტები
+                {t.nav_websites}
+              </button>
+               <button 
+                onClick={() => { setFilterType('FAVORITES'); setFilterCategory('ALL'); }}
+                className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all flex items-center gap-1 ${filterType === 'FAVORITES' ? 'bg-white text-red-500 shadow-sm' : 'text-slate-500 hover:text-red-500'}`}
+              >
+                <Heart size={14} className={filterType === 'FAVORITES' ? "fill-red-500" : ""} />
+                {t.nav_favorites}
               </button>
             </div>
 
-            <button 
-              onClick={() => setIsModalOpen(true)}
-              className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-all shadow-md shadow-indigo-200 active:scale-95"
-            >
-              <Plus size={18} />
-              <span className="hidden sm:inline">დამატება</span>
-            </button>
+            <div className="flex items-center gap-2">
+              {renderInstallButton()}
+              
+              <LanguageDropdown currentLang={language} onLanguageChange={setLanguage} />
+
+              <div className="w-px h-6 bg-slate-200 mx-1"></div>
+
+              <button 
+                onClick={() => setCurrentView('LANDING')}
+                className="p-2 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                title={t.nav_home}
+              >
+                <Home size={20} />
+              </button>
+
+              <button 
+                onClick={() => setIsModalOpen(true)}
+                className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-all shadow-md shadow-indigo-200 active:scale-95"
+              >
+                <Plus size={18} />
+                <span className="hidden sm:inline">{t.nav_add}</span>
+              </button>
+            </div>
           </div>
         </div>
       </nav>
@@ -246,10 +345,10 @@ const App: React.FC = () => {
         <div className="flex flex-col gap-6 mb-10">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
             <div>
-              <h2 className="text-3xl font-bold text-slate-900 mb-2">ბიბლიოთეკა</h2>
+              <h2 className="text-3xl font-bold text-slate-900 mb-2">{t.library_title}</h2>
               <p className="text-slate-500">
-                {filterType === 'ALL' ? 'ყველა კოდი' : filterType === 'component' ? 'მხოლოდ კომპონენტები' : 'მხოლოდ ვებ-გვერდები'}. 
-                {snippets.length} ელემენტი.
+                {filterType === 'ALL' ? t.library_subtitle_all : filterType === 'component' ? t.library_subtitle_components : filterType === 'website' ? t.library_subtitle_websites : t.library_subtitle_favorites}. 
+                {snippets.length} {t.items_count}.
               </p>
             </div>
 
@@ -258,21 +357,21 @@ const App: React.FC = () => {
                  <button 
                    onClick={() => setViewMode(ViewMode.GRID)} 
                    className={`p-2 rounded ${viewMode === ViewMode.GRID ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400 hover:text-indigo-600'}`}
-                   title="3 სვეტი"
+                   title="3 Columns"
                  >
                    <Grid3x3 size={18} />
                  </button>
                  <button 
                    onClick={() => setViewMode(ViewMode.LARGE_GRID)} 
                    className={`p-2 rounded ${viewMode === ViewMode.LARGE_GRID ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400 hover:text-indigo-600'}`}
-                   title="2 სვეტი"
+                   title="2 Columns"
                  >
                    <Grid2x2 size={18} />
                  </button>
                  <button 
                    onClick={() => setViewMode(ViewMode.LIST)} 
                    className={`p-2 rounded ${viewMode === ViewMode.LIST ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400 hover:text-indigo-600'}`}
-                   title="1 სვეტი"
+                   title="1 Column"
                  >
                    <Rows size={18} />
                  </button>
@@ -284,7 +383,7 @@ const App: React.FC = () => {
                 </div>
                 <input
                   type="text"
-                  placeholder="ძებნა..."
+                  placeholder={t.search_placeholder}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="block w-full pl-10 pr-3 py-2 border border-slate-200 rounded-xl leading-5 bg-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-shadow shadow-sm"
@@ -292,60 +391,103 @@ const App: React.FC = () => {
               </div>
             </div>
           </div>
+          
+          {/* Category Filter */}
+          {availableCategories.length > 0 && (
+             <div className="flex gap-2 flex-wrap items-center">
+               <span className="text-sm font-medium text-slate-500 flex items-center gap-1 mr-2">
+                 <Filter size={14} />
+                 {t.filter_category}
+               </span>
+               <button
+                  onClick={() => setFilterCategory('ALL')}
+                  className={`px-3 py-1 text-xs font-medium rounded-full transition-all border ${filterCategory === 'ALL' ? 'bg-slate-800 text-white border-slate-800' : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300'}`}
+               >
+                 {t.filter_all}
+               </button>
+               {availableCategories.map(cat => (
+                 <button
+                   key={cat}
+                   onClick={() => setFilterCategory(cat)}
+                   className={`px-3 py-1 text-xs font-medium rounded-full transition-all border ${filterCategory === cat ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300'}`}
+                 >
+                   {cat}
+                 </button>
+               ))}
+             </div>
+          )}
         </div>
         
         {/* Mobile Filter */}
         <div className="md:hidden flex gap-2 mb-6 overflow-x-auto pb-2">
             <button 
-                onClick={() => setFilterType('ALL')}
+                onClick={() => { setFilterType('ALL'); setFilterCategory('ALL'); }}
                 className={`px-4 py-2 text-sm font-medium rounded-full whitespace-nowrap border ${filterType === 'ALL' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-slate-600 border-slate-200'}`}
             >
                 <Layers size={14} className="inline mr-2" />
-                ყველა
+                {t.nav_all}
             </button>
              <button 
-                onClick={() => setFilterType('component')}
+                onClick={() => { setFilterType('component'); setFilterCategory('ALL'); }}
                 className={`px-4 py-2 text-sm font-medium rounded-full whitespace-nowrap border ${filterType === 'component' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-slate-600 border-slate-200'}`}
             >
                 <Box size={14} className="inline mr-2" />
-                კომპონენტები
+                {t.nav_components}
             </button>
             <button 
-                onClick={() => setFilterType('website')}
+                onClick={() => { setFilterType('website'); setFilterCategory('ALL'); }}
                 className={`px-4 py-2 text-sm font-medium rounded-full whitespace-nowrap border ${filterType === 'website' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-slate-600 border-slate-200'}`}
             >
                 <LayoutTemplate size={14} className="inline mr-2" />
-                საიტები
+                {t.nav_websites}
+            </button>
+             <button 
+                onClick={() => { setFilterType('FAVORITES'); setFilterCategory('ALL'); }}
+                className={`px-4 py-2 text-sm font-medium rounded-full whitespace-nowrap border ${filterType === 'FAVORITES' ? 'bg-red-500 text-white border-red-500' : 'bg-white text-slate-600 border-slate-200'}`}
+            >
+                <Heart size={14} className="inline mr-2" />
+                {t.nav_favorites}
             </button>
         </div>
 
-        {/* Grid */}
-        {filteredSnippets.length > 0 ? (
+        {/* Loading State */}
+        {isLoading && snippets.length === 0 ? (
+          <div className="flex items-center justify-center py-20 text-indigo-600">
+             <Loader2 size={40} className="animate-spin" />
+          </div>
+        ) : filteredSnippets.length > 0 ? (
           <div className={`grid gap-6 ${getGridClass()}`}>
             {filteredSnippets.map((snippet) => (
               <SnippetCard 
                 key={snippet.id} 
                 snippet={snippet} 
-                onDelete={handleDeleteSnippet} 
+                onDelete={triggerDelete} 
                 onUpdate={handleUpdateSnippet}
                 onSaveAs={handleSaveAsSnippet}
+                onToggleFavorite={handleToggleFavorite}
+                lang={language}
               />
             ))}
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center py-20 text-slate-400 border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50">
             <LayoutGrid size={48} className="mb-4 opacity-50" />
-            <p className="text-lg font-medium">კოდები არ მოიძებნა</p>
-            <p className="text-sm">დაამატეთ ახალი კოდი ღილაკზე დაჭერით</p>
+            <p className="text-lg font-medium">{t.no_codes_title}</p>
+            <p className="text-sm">{t.no_codes_desc}</p>
           </div>
         )}
       </main>
 
       <footer className="bg-white border-t border-slate-200 mt-auto">
         <div className="max-w-7xl mx-auto py-6 px-4 flex justify-between items-center text-slate-400 text-sm">
-          <p>© 2024 CodeLib. შექმნილია სიყვარულით.</p>
-          <div className="flex gap-4">
-            <Github size={18} className="hover:text-slate-600 cursor-pointer" />
+          <p>{t.footer_text}</p>
+          <div className="flex gap-4 items-center">
+            <button onClick={() => setCurrentView('ABOUT')} className="hover:text-indigo-600 transition-colors font-medium">
+              {t.footer_about}
+            </button>
+            <a href="#" className="hover:text-slate-600 cursor-pointer">
+              <Github size={18} />
+            </a>
           </div>
         </div>
       </footer>
@@ -354,6 +496,15 @@ const App: React.FC = () => {
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 
         onSave={handleAddSnippet}
+        existingCategories={Array.from(new Set(snippets.map(s => s.category).filter(Boolean)))}
+        lang={language}
+      />
+      
+      <ConfirmModal 
+        isOpen={!!snippetToDelete}
+        onClose={() => setSnippetToDelete(null)}
+        onConfirm={confirmDelete}
+        lang={language}
       />
     </div>
   );
