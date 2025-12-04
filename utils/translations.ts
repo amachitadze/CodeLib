@@ -40,6 +40,7 @@ export const translations = {
     card_not_saved: "● არ არის შენახული",
     card_fullscreen: "სრული ეკრანი",
     card_new_name: "ახალი სახელი...",
+    card_instruction_title: "ინსტრუქცია",
     
     // Add Modal
     add_title: "ახალი კოდის დამატება",
@@ -52,6 +53,8 @@ export const translations = {
     add_placeholder_category: "აირჩიე ან ჩაწერე...",
     add_input_desc: "აღწერა",
     add_placeholder_desc: "მოკლე აღწერა...",
+    add_input_instruction: "ინსტრუქცია (არასავალდებულო)",
+    add_placeholder_instruction: "მაგ: დააკოპირეთ CDN ლინკი, შეცვალეთ ფერი...",
     add_input_code: "HTML/CSS კოდი",
     add_ai_title: "AI ასისტენტი",
     add_ai_desc: "არ იცით როგორ დაწეროთ კოდი? სთხოვეთ Gemini-ს და ის დაგიგენერირებთ მზა HTML-ს.",
@@ -149,6 +152,7 @@ export const translations = {
     card_not_saved: "● Not Saved",
     card_fullscreen: "Fullscreen",
     card_new_name: "New Name...",
+    card_instruction_title: "Instructions",
     
     // Add Modal
     add_title: "Add New Snippet",
@@ -161,6 +165,8 @@ export const translations = {
     add_placeholder_category: "Select or type...",
     add_input_desc: "Description",
     add_placeholder_desc: "Short description...",
+    add_input_instruction: "Instructions (Optional)",
+    add_placeholder_instruction: "e.g., Copy the CDN link, change colors...",
     add_input_code: "HTML/CSS Code",
     add_ai_title: "AI Assistant",
     add_ai_desc: "Don't know how to code? Ask Gemini to generate HTML for you.",
@@ -258,6 +264,7 @@ export const translations = {
     card_not_saved: "● No Guardado",
     card_fullscreen: "Pantalla Completa",
     card_new_name: "Nuevo Nombre...",
+    card_instruction_title: "Instrucciones",
     
     // Add Modal
     add_title: "Añadir Nuevo Código",
@@ -270,6 +277,8 @@ export const translations = {
     add_placeholder_category: "Seleccionar o escribir...",
     add_input_desc: "Descripción",
     add_placeholder_desc: "Descripción corta...",
+    add_input_instruction: "Instrucciones (Opcional)",
+    add_placeholder_instruction: "ej: Copia el enlace CDN, cambia colores...",
     add_input_code: "Código HTML/CSS",
     add_ai_title: "Asistente AI",
     add_ai_desc: "¿No sabes programar? Pide a Gemini que genere HTML por ti.",

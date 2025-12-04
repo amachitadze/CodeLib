@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Sparkles, Loader2, Code as CodeIcon, LayoutTemplate, Box, Lock, Tag } from 'lucide-react';
+import { X, Sparkles, Loader2, Code as CodeIcon, LayoutTemplate, Box, Lock, Tag, FileText } from 'lucide-react';
 import { generateCodeSnippet } from '../services/geminiService';
 import { SnippetType, Language } from '../types';
 import { translations } from '../utils/translations';
@@ -7,7 +7,7 @@ import { translations } from '../utils/translations';
 interface AddSnippetModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (title: string, description: string, code: string, type: SnippetType, category: string) => void;
+  onSave: (title: string, description: string, code: string, type: SnippetType, category: string, instruction: string) => void;
   existingCategories: string[];
   lang: Language;
 }
@@ -28,6 +28,7 @@ const DEFAULT_CATEGORIES = {
 export const AddSnippetModal: React.FC<AddSnippetModalProps> = ({ isOpen, onClose, onSave, existingCategories, lang }) => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+  const [instruction, setInstruction] = useState('');
   const [code, setCode] = useState('');
   const [type, setType] = useState<SnippetType>('component');
   const [category, setCategory] = useState('');
@@ -60,7 +61,7 @@ export const AddSnippetModal: React.FC<AddSnippetModalProps> = ({ isOpen, onClos
     }
 
     if (title && code && category) {
-      onSave(title, description, code, type, category);
+      onSave(title, description, code, type, category, instruction);
       resetForm();
     }
   };
@@ -68,6 +69,7 @@ export const AddSnippetModal: React.FC<AddSnippetModalProps> = ({ isOpen, onClos
   const resetForm = () => {
     setTitle('');
     setDescription('');
+    setInstruction('');
     setCode('');
     setAiPrompt('');
     setPassword('');
@@ -198,6 +200,19 @@ export const AddSnippetModal: React.FC<AddSnippetModalProps> = ({ isOpen, onClos
                 onChange={(e) => setCode(e.target.value)}
                 placeholder="<div>Hello World</div>"
                 className="flex-1 min-h-[200px] w-full p-4 bg-slate-900 text-slate-300 font-mono text-sm rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none custom-scrollbar resize-none"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1 flex items-center gap-2">
+                 {t.add_input_instruction}
+                 <FileText size={14} className="text-slate-400" />
+              </label>
+              <textarea
+                value={instruction}
+                onChange={(e) => setInstruction(e.target.value)}
+                placeholder={t.add_placeholder_instruction}
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all h-20 resize-none text-sm"
               />
             </div>
           </div>

@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Snippet, TabState, Language } from '../types';
-import { Copy, Trash2, Eye, Code as CodeIcon, Maximize2, X, Save, FilePlus, Search, ArrowDown, Columns, Monitor, Heart, Tag, Sun, Moon } from 'lucide-react';
+import { Copy, Trash2, Eye, Code as CodeIcon, Maximize2, X, Save, FilePlus, Search, ArrowDown, Columns, Monitor, Heart, Tag, Sun, Moon, Info } from 'lucide-react';
 import { CodeEditor } from './CodeEditor';
 import { translations } from '../utils/translations';
 import { PasswordPromptModal } from './PasswordPromptModal';
@@ -263,7 +263,7 @@ export const SnippetCard: React.FC<SnippetCardProps> = ({ snippet, onDelete, onU
 
           {/* Preview Area */}
           {(fsView === 'preview' || fsView === 'split') && (
-            <div className={`bg-white relative flex-col flex ${fsView === 'split' ? 'w-1/2' : 'w-full'}`}>
+            <div className={`bg-white relative flex flex-col ${fsView === 'split' ? 'w-1/2' : 'w-full'}`}>
               {fsView === 'split' && (
                 <div className="px-4 py-2 bg-slate-100 text-xs text-slate-500 border-b border-slate-200 flex justify-between h-10 items-center shrink-0">
                   <span>Live Preview</span>
@@ -277,6 +277,19 @@ export const SnippetCard: React.FC<SnippetCardProps> = ({ snippet, onDelete, onU
                     sandbox="allow-scripts allow-modals allow-forms allow-popups"
                   />
               </div>
+
+               {/* Instruction Area in Fullscreen Preview */}
+               {snippet.instruction && (
+                  <div className="border-t border-slate-200 bg-indigo-50/50 p-4 shrink-0 max-h-48 overflow-y-auto">
+                     <div className="flex items-center gap-2 text-indigo-700 font-semibold mb-2 text-sm">
+                        <Info size={16} />
+                        {t.card_instruction_title}
+                     </div>
+                     <p className="text-slate-600 text-sm whitespace-pre-wrap leading-relaxed font-mono">
+                        {snippet.instruction}
+                     </p>
+                  </div>
+               )}
             </div>
           )}
       </div>

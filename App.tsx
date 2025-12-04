@@ -55,6 +55,7 @@ const App: React.FC = () => {
           code: item.code,
           type: item.type as SnippetType,
           category: item.category,
+          instruction: item.instruction, // Map instruction
           createdAt: item.created_at, // DB is bigint, JS converts to number mostly fine
           isFavorite: item.is_favorite
         }));
@@ -87,13 +88,14 @@ const App: React.FC = () => {
     setDeferredPrompt(null);
   };
 
-  const handleAddSnippet = async (title: string, description: string, code: string, type: SnippetType, category: string) => {
+  const handleAddSnippet = async (title: string, description: string, code: string, type: SnippetType, category: string, instruction: string) => {
     const newSnippet = {
       title,
       description,
       code,
       type,
       category,
+      instruction,
       created_at: Date.now(),
       is_favorite: false
     };
@@ -149,6 +151,7 @@ const App: React.FC = () => {
         code: newCode,
         type: original.type,
         category: original.category,
+        instruction: original.instruction, // Preserve instruction on copy
         created_at: Date.now(),
         is_favorite: false
       };

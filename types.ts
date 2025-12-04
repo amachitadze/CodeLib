@@ -9,6 +9,7 @@ export interface Snippet {
   code: string;
   type: SnippetType;
   category: string;
+  instruction?: string; // New field for instructions
   createdAt: number;
   tags?: string[];
   isFavorite?: boolean;
