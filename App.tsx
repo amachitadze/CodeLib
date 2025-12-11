@@ -8,7 +8,7 @@ import { AboutPage } from './components/AboutPage';
 import { LanguageDropdown } from './components/LanguageDropdown';
 import { translations } from './utils/translations';
 import { Plus, Search, Code2, LayoutGrid, Github, LayoutTemplate, Box, Layers, Grid3x3, Grid2x2, Rows, Heart, Filter, Home, Download, Loader2 } from 'lucide-react';
-import { supabase } from './lib/supabase';
+import { supabase, sendKeepAliveSignal } from './lib/supabase';
 
 const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<'LANDING' | 'APP' | 'ABOUT'>('LANDING');
@@ -34,6 +34,27 @@ const App: React.FC = () => {
   // Load from Supabase on mount
   useEffect(() => {
     fetchSnippets();
+    
+    // Maintenance / Keep Alive Logic (Every 5 days)
+    const checkMaintenance = async () => {
+      const LAST_PULSE_KEY = 'codelib_maintenance_pulse';
+      const FIVE_DAYS_MS = 5 * 24 * 60 * 60 * 1000;
+      
+      const lastPulse = localStorage.getItem(LAST_PULSE_KEY);
+      const now = Date.now();
+
+      // If no record or > 5 days elapsed since last pulse
+      if (!lastPulse || (now - parseInt(lastPulse)) > FIVE_DAYS_MS) {
+        console.log("Initiating 5-day Supabase maintenance pulse...");
+        const success = await sendKeepAliveSignal();
+        if (success) {
+          localStorage.setItem(LAST_PULSE_KEY, now.toString());
+          console.log("Maintenance pulse successful. Next check in 5 days.");
+        }
+      }
+    };
+
+    checkMaintenance();
   }, []);
 
   const fetchSnippets = async () => {

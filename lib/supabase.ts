@@ -14,3 +14,26 @@ if (!envUrl || !envKey) {
 }
 
 export const supabase = createClient(supabaseUrl, supabaseKey);
+
+/**
+ * Sends a lightweight request to Supabase to prevent the project from pausing
+ * due to inactivity (7-day limit on free tier).
+ * 
+ * This performs a HEAD request for count, which is very efficient.
+ */
+export const sendKeepAliveSignal = async () => {
+  try {
+    const { count, error } = await supabase
+      .from('snippets')
+      .select('*', { count: 'exact', head: true });
+    
+    if (error) {
+      console.warn("Keep-alive signal failed:", error.message);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error("Keep-alive signal error:", err);
+    return false;
+  }
+};

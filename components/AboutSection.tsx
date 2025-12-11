@@ -71,7 +71,14 @@ export const AboutSection: React.FC<AboutSectionProps> = ({ lang }) => {
                 </div>
                 <div className="flex">
                   <span className="text-purple-400 w-24">"author":</span>
-                  <span className="text-green-400">"Resource AVMA"</span>,
+                  <a 
+                    href="https://sites.google.com/view/resource-avma" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-green-400 hover:underline hover:text-green-300 transition-colors"
+                  >
+                    "Resource AVMA"
+                  </a>,
                 </div>
                 <div className="flex">
                   <span className="text-purple-400 w-24">"status":</span>
