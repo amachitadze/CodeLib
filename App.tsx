@@ -27,8 +27,6 @@ const App: React.FC = () => {
 
   const t = translations[language];
 
-  const appIcon = "https://i.postimg.cc/DzHkcn2f/App-icon-Code-Lab.png";
-
   useEffect(() => {
     fetchSnippets();
     const checkMaintenance = async () => {
@@ -67,7 +65,7 @@ const App: React.FC = () => {
           imageUrl: item.image_url,
           demoUrl: item.demo_url,
           downloadUrl: item.download_url,
-          createdAt: typeof item.created_at === 'string' ? new Date(item.created_at).getTime() : (item.created_at || Date.now()),
+          createdAt: typeof item.created_at === 'string' ? new Date(item.created_at).getTime() : (typeof item.created_at === 'number' ? item.created_at : Date.now()),
           isFavorite: item.is_favorite || false
         }));
         setSnippets(mappedSnippets);
@@ -80,6 +78,7 @@ const App: React.FC = () => {
   };
 
   const handleAddSnippet = async (title: string, description: string, code: string, type: SnippetType, category: string, instruction: string, imageUrl?: string, demoUrl?: string, downloadUrl?: string) => {
+    // We remove created_at here to let Supabase handle the default (now())
     const newSnippet = {
       title,
       description,
@@ -90,7 +89,6 @@ const App: React.FC = () => {
       image_url: imageUrl,
       demo_url: demoUrl,
       download_url: downloadUrl,
-      created_at: new Date().toISOString(),
       is_favorite: false
     };
 
@@ -116,47 +114,14 @@ const App: React.FC = () => {
       .filter(Boolean)
   )).sort();
 
-  const handleInstallClick = async () => {
-    if (!deferredPrompt) return;
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    setDeferredPrompt(null);
-  };
-
-  const renderInstallButton = () => {
-      if (!deferredPrompt) return null;
-      return (
-        <button
-            onClick={handleInstallClick}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 shadow-sm border border-indigo-200 transition-all"
-            title={t.nav_install}
-        >
-            <Download size={14} />
-            <span className="hidden sm:inline">{t.nav_install}</span>
-        </button>
-      );
-  };
-
-  if (currentView === 'LANDING') {
-    return (
-      <>
-        <div className="fixed top-4 right-4 z-[60] flex gap-2">
-            {renderInstallButton()}
-            <LanguageDropdown currentLang={language} onLanguageChange={setLanguage} />
-        </div>
-        <LandingPage onStart={() => setCurrentView('APP')} onAbout={() => setCurrentView('ABOUT')} lang={language} />
-      </>
-    );
-  }
-
   return (
     <div className="min-h-screen flex flex-col font-sans bg-slate-50">
       <nav className="bg-white border-b border-slate-200 sticky top-0 z-40 backdrop-blur-md bg-white/80">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16 items-center">
             <div className="flex items-center gap-3">
-              <div className="bg-indigo-600 p-1.5 rounded-lg text-white cursor-pointer" onClick={() => setCurrentView('LANDING')}>
-                <img src={appIcon} className="w-8 h-8 object-contain" alt="icon" />
+              <div className="bg-indigo-600 p-2 rounded-lg text-white cursor-pointer hover:bg-indigo-700 transition-colors" onClick={() => setCurrentView('LANDING')}>
+                <Code2 size={24} />
               </div>
               <h1 className="hidden sm:block text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600 cursor-pointer" onClick={() => setCurrentView('LANDING')}>{t.app_name}</h1>
             </div>
@@ -220,7 +185,7 @@ const App: React.FC = () => {
         ) : filteredSnippets.length > 0 ? (
           <div className={`grid gap-6 ${viewMode === ViewMode.LIST ? 'grid-cols-1 max-w-4xl mx-auto' : viewMode === ViewMode.LARGE_GRID ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'}`}>
             {filteredSnippets.map((snippet) => (
-              <SnippetCard key={snippet.id} snippet={snippet} onDelete={(id) => setSnippetToDelete(id)} onUpdate={async (id, code) => { await supabase.from('snippets').update({ code }).eq('id', id); fetchSnippets(); }} onSaveAs={async (id, code, title) => { const s = snippets.find(x => x.id === id); if (s) { await supabase.from('snippets').insert([{ ...s, id: undefined, title, code, created_at: new Date().toISOString() }]); fetchSnippets(); } }} onToggleFavorite={async (id) => { const s = snippets.find(x => x.id === id); if (s) { await supabase.from('snippets').update({ is_favorite: !s.isFavorite }).eq('id', id); fetchSnippets(); } }} lang={language} />
+              <SnippetCard key={snippet.id} snippet={snippet} onDelete={(id) => setSnippetToDelete(id)} onUpdate={async (id, code) => { await supabase.from('snippets').update({ code }).eq('id', id); fetchSnippets(); }} onSaveAs={async (id, code, title) => { const s = snippets.find(x => x.id === id); if (s) { await supabase.from('snippets').insert([{ ...s, id: undefined, title, code }]); fetchSnippets(); } }} onToggleFavorite={async (id) => { const s = snippets.find(x => x.id === id); if (s) { await supabase.from('snippets').update({ is_favorite: !s.isFavorite }).eq('id', id); fetchSnippets(); } }} lang={language} />
             ))}
           </div>
         ) : (
