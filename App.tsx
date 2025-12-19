@@ -120,7 +120,7 @@ const App: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16 items-center">
             <div className="flex items-center gap-3">
-              <div className="bg-indigo-600 p-2 rounded-lg text-white cursor-pointer" onClick={() => setCurrentView('LANDING')}><Code2 size={24} /></div>
+              <div className="bg-indigo-600 p-2 rounded-lg text-white cursor-pointer" onClick={() => setCurrentView('LANDING')}><img src="https://i.postimg.cc/DzHkcn2f/App-icon-Code-Lab.png" className="w-6 h-6 invert brightness-0" alt="icon" /></div>
               <h1 className="hidden sm:block text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600 cursor-pointer" onClick={() => setCurrentView('LANDING')}>{t.app_name}</h1>
             </div>
             
