@@ -1,23 +1,12 @@
 import { GoogleGenAI } from "@google/genai";
 import { SnippetType, Language } from "../types";
 
-// Safe access to environment variable
-const getApiKey = () => {
-  return (import.meta as any).env?.VITE_GEMINI_API_KEY;
-};
-
-// Initialize conditionally or lazily to prevent crash if key is missing on load
-const getAIClient = () => {
-  const apiKey = getApiKey();
-  if (!apiKey) {
-    console.error("Gemini API Key is missing");
-    throw new Error("API Key missing");
-  }
-  return new GoogleGenAI({ apiKey: apiKey });
-};
-
+// კოდის გენერირება Gemini API-ს გამოყენებით
 export const generateCodeSnippet = async (prompt: string, type: SnippetType, language: Language): Promise<{ code: string; title: string; description: string }> => {
-  // Coding tasks are complex, so we use gemini-3-pro-preview
+  // Gemini API კლიენტის ინიციალიზაცია ხდება უშუალოდ ფუნქციაში, რომ უზრუნველყოს უახლესი API გასაღების გამოყენება
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  
+  // რთული კოდირების ამოცანებისთვის ვიყენებთ gemini-3-pro-preview მოდელს
   const model = "gemini-3-pro-preview";
   
   const systemInstruction = `
@@ -44,7 +33,6 @@ export const generateCodeSnippet = async (prompt: string, type: SnippetType, lan
   `;
 
   try {
-    const ai = getAIClient();
     const response = await ai.models.generateContent({
       model,
       contents: `Create a ${type} for: ${prompt}`,
