@@ -12,7 +12,6 @@ import { Plus, Search, Code2, Grid3x3, Grid2x2, Rows, Heart, Filter, Download, L
 import { supabase, sendKeepAliveSignal } from './lib/supabase';
 
 const App: React.FC = () => {
-  // Restore Landing Page as the default initial view
   const [currentView, setCurrentView] = useState<'LANDING' | 'APP' | 'ABOUT'>('LANDING');
   const [snippets, setSnippets] = useState<Snippet[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -63,7 +62,6 @@ const App: React.FC = () => {
         setFetchError(`Supabase Error: ${error.message}`);
       } else if (data) {
         const mappedSnippets: Snippet[] = data.map((item: any) => {
-          // Robust timestamp parsing for bigint or iso strings
           let createdAt = Date.now();
           if (item.created_at) {
             if (typeof item.created_at === 'number') {
@@ -99,7 +97,6 @@ const App: React.FC = () => {
   };
 
   const handleAddSnippet = async (title: string, description: string, code: string, type: SnippetType, category: string, instruction: string, imageUrl?: string, demoUrl?: string, downloadUrl?: string) => {
-    // FIX: We do NOT send created_at here. Supabase will set it automatically as BigInt.
     const newSnippet = {
       title,
       description,
@@ -148,10 +145,10 @@ const App: React.FC = () => {
     return (
       <button
           onClick={handleInstallClick}
-          className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 shadow-sm border border-indigo-200 transition-all"
+          className="flex items-center gap-2 px-5 py-3 rounded-2xl text-sm font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-2xl transition-all active:scale-95 border-2 border-white/20"
       >
-          <Download size={14} />
-          <span className="hidden sm:inline">{t.nav_install}</span>
+          <Download size={18} />
+          <span>{t.nav_install}</span>
       </button>
     );
   };
@@ -159,11 +156,16 @@ const App: React.FC = () => {
   if (currentView === 'LANDING') {
     return (
       <>
-        <div className="fixed top-4 right-4 z-[60] flex gap-2">
+        {/* Install button fixed at bottom left to avoid overlap */}
+        <div className="fixed bottom-6 left-6 z-[60]">
             {renderInstallButton()}
-            <LanguageDropdown currentLang={language} onLanguageChange={setLanguage} />
         </div>
-        <LandingPage onStart={() => setCurrentView('APP')} onAbout={() => setCurrentView('ABOUT')} lang={language} />
+        <LandingPage 
+          onStart={() => setCurrentView('APP')} 
+          onAbout={() => setCurrentView('ABOUT')} 
+          lang={language}
+          langSwitcher={<LanguageDropdown currentLang={language} onLanguageChange={setLanguage} />}
+        />
       </>
     );
   }
@@ -180,7 +182,7 @@ const App: React.FC = () => {
               <h1 className="hidden sm:block text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600 cursor-pointer" onClick={() => setCurrentView('LANDING')}>{t.app_name}</h1>
             </div>
             
-            <div className="hidden md:flex items-center gap-1 bg-slate-100 p-1 rounded-lg">
+            <div className="hidden lg:flex items-center gap-1 bg-slate-100 p-1 rounded-lg">
               <button onClick={() => { setFilterType('ALL'); setFilterCategory('ALL'); }} className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all ${filterType === 'ALL' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500'}`}>{t.nav_all}</button>
               <button onClick={() => { setFilterType('component'); setFilterCategory('ALL'); }} className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all ${filterType === 'component' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500'}`}>{t.nav_components}</button>
               <button onClick={() => { setFilterType('website'); setFilterCategory('ALL'); }} className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all ${filterType === 'website' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500'}`}>{t.nav_websites}</button>
@@ -189,8 +191,12 @@ const App: React.FC = () => {
             </div>
 
             <div className="flex items-center gap-2">
+              <button onClick={() => setIsModalOpen(true)} className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-all shadow-md active:scale-95">
+                <Plus size={18} />
+                <span className="hidden sm:inline">{t.nav_add}</span>
+              </button>
+              {/* Language Switcher moved to the right of Add button */}
               <LanguageDropdown currentLang={language} onLanguageChange={setLanguage} />
-              <button onClick={() => setIsModalOpen(true)} className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-all shadow-md active:scale-95"><Plus size={18} /><span className="hidden sm:inline">{t.nav_add}</span></button>
             </div>
           </div>
         </div>
@@ -209,7 +215,6 @@ const App: React.FC = () => {
                 <input type="text" placeholder={t.search_placeholder} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="block w-full pl-10 pr-3 py-2 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 transition-all shadow-sm" />
               </div>
               
-              {/* RESTORED VIEW MODE SWITCHER */}
               <div className="flex bg-white p-1 rounded-xl border border-slate-200 shadow-sm shrink-0">
                 <button 
                   onClick={() => setViewMode(ViewMode.GRID)} 

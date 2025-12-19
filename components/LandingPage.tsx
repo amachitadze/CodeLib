@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Code2, Zap, Brain, Shield, Rocket, ArrowRight, Heart, Coffee, Bitcoin } from 'lucide-react';
 import { Language } from '../types';
@@ -8,16 +9,17 @@ interface LandingPageProps {
   onStart: () => void;
   onAbout: () => void;
   lang: Language;
+  langSwitcher?: React.ReactNode;
 }
 
-export const LandingPage: React.FC<LandingPageProps> = ({ onStart, onAbout, lang }) => {
+export const LandingPage: React.FC<LandingPageProps> = ({ onStart, onAbout, lang, langSwitcher }) => {
   const t = translations[lang];
   const [showDonateModal, setShowDonateModal] = useState(false);
 
   return (
     <div className="min-h-screen bg-white font-sans overflow-x-hidden">
       
-      {/* Navbar (Static inside landing for visual consistency) */}
+      {/* Navbar - Ensured horizontal layout without overlaps */}
       <nav className="fixed w-full z-50 bg-white/80 backdrop-blur-md border-b border-slate-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
@@ -29,20 +31,25 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart, onAbout, lang
                 CodeLib
               </span>
             </div>
-            <div className="flex items-center gap-4">
+            
+            <div className="flex items-center gap-2 sm:gap-4">
               <button 
                 onClick={() => setShowDonateModal(true)}
-                className="hidden sm:flex items-center gap-2 text-slate-600 hover:text-indigo-600 font-medium transition-colors"
+                className="hidden md:flex items-center gap-2 text-slate-600 hover:text-indigo-600 font-medium transition-colors"
               >
                 <Heart size={18} />
-                {t.lp_donate_title}
+                <span className="text-sm">{t.lp_donate_title}</span>
               </button>
+              
               <button 
                 onClick={onStart}
-                className="bg-slate-900 text-white px-5 py-2 rounded-full font-medium hover:bg-slate-800 transition-all hover:shadow-lg active:scale-95"
+                className="bg-slate-900 text-white px-4 sm:px-6 py-2 rounded-full text-sm font-bold hover:bg-slate-800 transition-all hover:shadow-lg active:scale-95 whitespace-nowrap"
               >
-                {t.nav_add}
+                {t.lp_start_btn.split(' ')[0]} {/* Shorter version for small screens if needed */}
               </button>
+              
+              {/* Language switcher placed to the right of the Start button */}
+              {langSwitcher && <div className="shrink-0">{langSwitcher}</div>}
             </div>
           </div>
         </div>
@@ -50,7 +57,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart, onAbout, lang
 
       {/* Hero Section */}
       <section className="relative pt-32 pb-20 lg:pt-48 lg:pb-32 overflow-hidden">
-        {/* Background blobs */}
         <div className="absolute top-0 left-0 w-full h-full overflow-hidden -z-10">
           <div className="absolute top-0 left-1/4 w-72 h-72 bg-purple-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob"></div>
           <div className="absolute top-0 right-1/4 w-72 h-72 bg-yellow-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-2000"></div>
