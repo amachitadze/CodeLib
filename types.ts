@@ -1,4 +1,4 @@
-export type SnippetType = 'component' | 'website' | 'template';
+export type SnippetType = 'component' | 'website';
 
 export type Language = 'ka' | 'en' | 'es';
 
@@ -9,20 +9,16 @@ export interface Snippet {
   code: string;
   type: SnippetType;
   category: string;
-  instruction?: string;
+  instruction?: string; // New field for instructions
   createdAt: number;
   tags?: string[];
   isFavorite?: boolean;
-  // Template specific fields
-  imageUrl?: string;
-  demoUrl?: string;
-  downloadUrl?: string;
 }
 
 export enum ViewMode {
-  GRID = 'GRID',
-  LARGE_GRID = 'LARGE_GRID',
-  LIST = 'LIST'
+  GRID = 'GRID',         // 3 columns
+  LARGE_GRID = 'LARGE_GRID', // 2 columns
+  LIST = 'LIST'          // 1 column
 }
 
 export enum TabState {
