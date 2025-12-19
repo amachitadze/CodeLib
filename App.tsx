@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Snippet, SnippetType, ViewMode, Language } from './types';
 import { SnippetCard } from './components/SnippetCard';
@@ -7,10 +8,11 @@ import { LandingPage } from './components/LandingPage';
 import { AboutPage } from './components/AboutPage';
 import { LanguageDropdown } from './components/LanguageDropdown';
 import { translations } from './utils/translations';
-import { Plus, Search, Code2, LayoutGrid, Github, LayoutTemplate, Box, Layers, Grid3x3, Grid2x2, Rows, Heart, Filter, Home, Download, Loader2, AlertCircle, ImageIcon } from 'lucide-react';
+import { Plus, Search, Code2, Grid3x3, Grid2x2, Rows, Heart, Filter, Download, Loader2, AlertCircle, Layers } from 'lucide-react';
 import { supabase, sendKeepAliveSignal } from './lib/supabase';
 
 const App: React.FC = () => {
+  // Restore Landing Page as the default initial view
   const [currentView, setCurrentView] = useState<'LANDING' | 'APP' | 'ABOUT'>('LANDING');
   const [snippets, setSnippets] = useState<Snippet[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -29,12 +31,18 @@ const App: React.FC = () => {
 
   useEffect(() => {
     fetchSnippets();
+    
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    });
+
     const checkMaintenance = async () => {
       const LAST_PULSE_KEY = 'codelib_maintenance_pulse';
       const FIVE_DAYS_MS = 5 * 24 * 60 * 60 * 1000;
       const lastPulse = localStorage.getItem(LAST_PULSE_KEY);
       const now = Date.now();
-      if (!lastPulse || (now - parseInt(lastPulse)) > FIVE_DAYS_MS) {
+      if (!lastPulse || (now - parseInt(lastPulse || '0')) > FIVE_DAYS_MS) {
         const success = await sendKeepAliveSignal();
         if (success) localStorage.setItem(LAST_PULSE_KEY, now.toString());
       }
@@ -54,20 +62,33 @@ const App: React.FC = () => {
       if (error) {
         setFetchError(`Supabase Error: ${error.message}`);
       } else if (data) {
-        const mappedSnippets: Snippet[] = data.map((item: any) => ({
-          id: item.id,
-          title: item.title || 'Untitled',
-          description: item.description || '',
-          code: item.code || '',
-          type: (item.type as SnippetType) || 'component',
-          category: item.category || 'Other',
-          instruction: item.instruction || '',
-          imageUrl: item.image_url,
-          demoUrl: item.demo_url,
-          downloadUrl: item.download_url,
-          createdAt: typeof item.created_at === 'string' ? new Date(item.created_at).getTime() : (typeof item.created_at === 'number' ? item.created_at : Date.now()),
-          isFavorite: item.is_favorite || false
-        }));
+        const mappedSnippets: Snippet[] = data.map((item: any) => {
+          // Robust timestamp parsing for bigint or iso strings
+          let createdAt = Date.now();
+          if (item.created_at) {
+            if (typeof item.created_at === 'number') {
+              createdAt = item.created_at;
+            } else if (typeof item.created_at === 'string') {
+              const parsed = Number(item.created_at);
+              createdAt = isNaN(parsed) ? new Date(item.created_at).getTime() : parsed;
+            }
+          }
+
+          return {
+            id: item.id,
+            title: item.title || 'Untitled',
+            description: item.description || '',
+            code: item.code || '',
+            type: (item.type as SnippetType) || 'component',
+            category: item.category || 'Other',
+            instruction: item.instruction || '',
+            imageUrl: item.image_url,
+            demoUrl: item.demo_url,
+            downloadUrl: item.download_url,
+            createdAt: createdAt,
+            isFavorite: item.is_favorite || false
+          };
+        });
         setSnippets(mappedSnippets);
       }
     } catch (err: any) {
@@ -78,7 +99,7 @@ const App: React.FC = () => {
   };
 
   const handleAddSnippet = async (title: string, description: string, code: string, type: SnippetType, category: string, instruction: string, imageUrl?: string, demoUrl?: string, downloadUrl?: string) => {
-    // We remove created_at here to let Supabase handle the default (now())
+    // FIX: We do NOT send created_at here. Supabase will set it automatically as BigInt.
     const newSnippet = {
       title,
       description,
@@ -101,7 +122,8 @@ const App: React.FC = () => {
   };
 
   const filteredSnippets = snippets.filter(s => {
-    const matchesSearch = s.title.toLowerCase().includes(searchQuery.toLowerCase()) || s.description?.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch = s.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                         (s.description && s.description.toLowerCase().includes(searchQuery.toLowerCase()));
     let matchesType = filterType === 'ALL' || (filterType === 'FAVORITES' ? !!s.isFavorite : s.type === filterType);
     let matchesCategory = filterCategory === 'ALL' || s.category === filterCategory;
     return matchesSearch && matchesType && matchesCategory;
@@ -113,6 +135,38 @@ const App: React.FC = () => {
       .map(s => s.category)
       .filter(Boolean)
   )).sort();
+
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') setDeferredPrompt(null);
+  };
+
+  const renderInstallButton = () => {
+    if (!deferredPrompt) return null;
+    return (
+      <button
+          onClick={handleInstallClick}
+          className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 shadow-sm border border-indigo-200 transition-all"
+      >
+          <Download size={14} />
+          <span className="hidden sm:inline">{t.nav_install}</span>
+      </button>
+    );
+  };
+
+  if (currentView === 'LANDING') {
+    return (
+      <>
+        <div className="fixed top-4 right-4 z-[60] flex gap-2">
+            {renderInstallButton()}
+            <LanguageDropdown currentLang={language} onLanguageChange={setLanguage} />
+        </div>
+        <LandingPage onStart={() => setCurrentView('APP')} onAbout={() => setCurrentView('ABOUT')} lang={language} />
+      </>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col font-sans bg-slate-50">
@@ -149,9 +203,36 @@ const App: React.FC = () => {
               <h2 className="text-3xl font-bold text-slate-900 mb-2">{t.library_title}</h2>
               <p className="text-slate-500">{filterType === 'ALL' ? t.library_subtitle_all : filterType === 'template' ? t.library_subtitle_templates : t.library_subtitle_all}. {snippets.length} {t.items_count}.</p>
             </div>
-            <div className="relative w-full md:w-64">
-              <Search size={18} className="absolute inset-y-0 left-3 mt-2.5 text-slate-400" />
-              <input type="text" placeholder={t.search_placeholder} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="block w-full pl-10 pr-3 py-2 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 transition-all shadow-sm" />
+            <div className="flex items-center gap-4 w-full md:w-auto">
+              <div className="relative flex-1 md:w-64">
+                <Search size={18} className="absolute inset-y-0 left-3 mt-2.5 text-slate-400" />
+                <input type="text" placeholder={t.search_placeholder} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="block w-full pl-10 pr-3 py-2 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 transition-all shadow-sm" />
+              </div>
+              
+              {/* RESTORED VIEW MODE SWITCHER */}
+              <div className="flex bg-white p-1 rounded-xl border border-slate-200 shadow-sm shrink-0">
+                <button 
+                  onClick={() => setViewMode(ViewMode.GRID)} 
+                  className={`p-2 rounded-lg transition-all ${viewMode === ViewMode.GRID ? 'bg-indigo-50 text-indigo-600' : 'text-slate-400 hover:text-slate-600'}`}
+                  title="3 Columns"
+                >
+                  <Grid3x3 size={18} />
+                </button>
+                <button 
+                  onClick={() => setViewMode(ViewMode.LARGE_GRID)} 
+                  className={`p-2 rounded-lg transition-all ${viewMode === ViewMode.LARGE_GRID ? 'bg-indigo-50 text-indigo-600' : 'text-slate-400 hover:text-slate-600'}`}
+                  title="2 Columns"
+                >
+                  <Grid2x2 size={18} />
+                </button>
+                <button 
+                  onClick={() => setViewMode(ViewMode.LIST)} 
+                  className={`p-2 rounded-lg transition-all ${viewMode === ViewMode.LIST ? 'bg-indigo-50 text-indigo-600' : 'text-slate-400 hover:text-slate-600'}`}
+                  title="1 Column (List)"
+                >
+                  <Rows size={18} />
+                </button>
+              </div>
             </div>
           </div>
           
